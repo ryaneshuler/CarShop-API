@@ -1,8 +1,8 @@
 from flask import request, jsonify
 from marshmallow import ValidationError
-from sqlalchemy import select
-from app.extensions import db
-from app.models import Mechanic
+from sqlalchemy import select, func
+from app.extensions import db, limiter, cache
+from app.models import Mechanic, mechanic_ticket
 from . import mechanics_bp
 from .schemas import mechanic_schema, mechanics_schema
 
@@ -20,8 +20,22 @@ def create_mechanic():
 
 
 @mechanics_bp.route('/', methods=['GET'])
+@limiter.limit("100 per hour")
+@cache.cached(timeout=60)
 def get_mechanics():
     mechanics = db.session.execute(select(Mechanic)).scalars().all()
+    return mechanics_schema.jsonify(mechanics), 200
+
+
+@mechanics_bp.route('/most-worked', methods=['GET'])
+def most_worked_mechanics():
+    query = (
+        select(Mechanic)
+        .outerjoin(mechanic_ticket, Mechanic.id == mechanic_ticket.c.mechanic_id)
+        .group_by(Mechanic.id)
+        .order_by(func.count(mechanic_ticket.c.ticket_id).desc())
+    )
+    mechanics = db.session.execute(query).scalars().all()
     return mechanics_schema.jsonify(mechanics), 200
 
 

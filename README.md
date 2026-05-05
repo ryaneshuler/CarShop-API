@@ -10,17 +10,27 @@ Car Shop API/
 ├── config.py
 └── app/
     ├── __init__.py          # App factory, registers blueprints, creates tables
-    ├── extensions.py        # db, ma, Base
-    ├── models.py            # Mechanic, ServiceTicket, mechanic_ticket join table
+    ├── extensions.py        # db, ma, limiter, cache
+    ├── models.py            # User, Mechanic, ServiceTicket, Inventory, join tables
+    ├── utils/
+    │   └── util.py          # JWT encode_token(), token_required decorator
     └── blueprints/
+        ├── customer/
+        │   ├── __init__.py  # customer_bp
+        │   ├── routes.py    # POST /, POST /login, GET /, GET /my-tickets, PUT /<id>, DELETE /
+        │   └── schemas.py   # CustomerSchema, LoginSchema
         ├── mechanics/
         │   ├── __init__.py  # mechanics_bp
-        │   ├── routes.py    # POST /, GET /, PUT /<id>, DELETE /<id>
+        │   ├── routes.py    # POST /, GET /, GET /most-worked, PUT /<id>, DELETE /<id>
         │   └── schemas.py   # MechanicSchema
-        └── service_tickets/
-            ├── __init__.py  # service_tickets_bp
-            ├── routes.py    # POST /, GET /, PUT assign/remove mechanic
-            └── schemas.py   # ServiceTicketSchema
+        ├── service_tickets/
+        │   ├── __init__.py  # service_tickets_bp
+        │   ├── routes.py    # POST /, GET /, PUT assign/remove/edit mechanic, assign customer, add part
+        │   └── schemas.py   # ServiceTicketSchema
+        └── inventory/
+            ├── __init__.py  # inventory_bp
+            ├── routes.py    # POST /, GET /, GET /<id>, PUT /<id>, DELETE /<id>
+            └── schemas.py   # InventorySchema
 ```
 
 ## Setup
@@ -28,7 +38,7 @@ Car Shop API/
 ```bash
 python -m venv .venv
 source .venv/Scripts/activate
-pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy
+pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy flask-limiter flask-caching python-jose
 ```
 
 ## Running the App
@@ -37,26 +47,62 @@ pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy
 python run.py
 ```
 
-The server runs on `http://127.0.0.1:5001` (port 5001 to avoid conflicts with other services).
+The server runs on `http://127.0.0.1:5001`.
 
 The SQLite database (`car_shop.db`) is created automatically on first run inside the `instance/` folder.
 
+## Authentication
+
+Protected routes require a JWT token in the `Authorization` header:
+
+```
+Authorization: Bearer <token>
+```
+
+Obtain a token by logging in at `POST /customers/login`. Tokens expire after 1 hour.
+
 ## Endpoints
+
+### Customers `/customers`
+
+| Method | Route | Auth Required | Description |
+|--------|-------|:---:|-------------|
+| POST | `/` | No | Create a new customer |
+| POST | `/login` | No | Login — returns JWT token |
+| GET | `/` | No | Get all customers (supports `?page=&per_page=`) |
+| GET | `/my-tickets` | Yes | Get the authenticated customer's service tickets |
+| PUT | `/<customer_id>` | Yes | Update a customer |
+| DELETE | `/` | Yes | Delete the authenticated customer |
 
 ### Mechanics `/mechanics`
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/` | Create a new mechanic |
-| GET | `/` | Get all mechanics |
-| PUT | `/<id>` | Update a mechanic |
-| DELETE | `/<id>` | Delete a mechanic |
+| Method | Route | Auth Required | Description |
+|--------|-------|:---:|-------------|
+| POST | `/` | No | Create a new mechanic |
+| GET | `/` | No | Get all mechanics (rate limited: 100/hr, cached 60s) |
+| GET | `/most-worked` | No | Get mechanics sorted by number of tickets |
+| PUT | `/<id>` | No | Update a mechanic |
+| DELETE | `/<id>` | No | Delete a mechanic |
 
 ### Service Tickets `/service-tickets`
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/` | Create a new service ticket |
-| GET | `/` | Get all service tickets |
-| PUT | `/<ticket_id>/assign-mechanic/<mechanic_id>` | Assign a mechanic to a ticket |
-| PUT | `/<ticket_id>/remove-mechanic/<mechanic_id>` | Remove a mechanic from a ticket |
+| Method | Route | Auth Required | Description |
+|--------|-------|:---:|-------------|
+| POST | `/` | No | Create a new service ticket |
+| GET | `/` | No | Get all service tickets |
+| PUT | `/<ticket_id>` | No | Update a service ticket |
+| PUT | `/<ticket_id>/assign-mechanic/<mechanic_id>` | No | Assign a mechanic to a ticket |
+| PUT | `/<ticket_id>/remove-mechanic/<mechanic_id>` | No | Remove a mechanic from a ticket |
+| PUT | `/<ticket_id>/edit` | No | Batch add/remove mechanics (`add_ids`, `remove_ids`) |
+| PUT | `/<ticket_id>/assign-customer/<customer_id>` | No | Assign a customer to a ticket |
+| PUT | `/<ticket_id>/add-part/<inventory_id>` | No | Add an inventory part to a ticket |
+
+### Inventory `/inventory`
+
+| Method | Route | Auth Required | Description |
+|--------|-------|:---:|-------------|
+| POST | `/` | No | Create a new part |
+| GET | `/` | No | Get all parts |
+| GET | `/<part_id>` | No | Get a single part |
+| PUT | `/<part_id>` | No | Update a part |
+| DELETE | `/<part_id>` | No | Delete a part |
