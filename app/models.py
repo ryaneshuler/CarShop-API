@@ -60,3 +60,12 @@ class Inventory(Base):
 
     tickets: Mapped[List['ServiceTicket']] = db.relationship(secondary=ticket_inventory, back_populates='parts')
 
+class Customer(Base):
+    __tablename__ = 'customers'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(db.String(255), nullable=False)
+    email: Mapped[str] = mapped_column(db.String(360), nullable=False, unique=True)
+    DOB: Mapped[str] = mapped_column(db.String(20), nullable=False)
+    password: Mapped[str] = mapped_column(db.String(255), nullable=False)
+
