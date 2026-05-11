@@ -128,3 +128,32 @@ def add_part_to_ticket(ticket_id, inventory_id):
     ticket.parts.append(part)
     db.session.commit()
     return service_ticket_schema.jsonify(ticket), 200
+
+# remove part from ticket
+@service_tickets_bp.route('/<int:ticket_id>/remove-part/<int:inventory_id>', methods=['PUT'])
+def remove_part_from_ticket(ticket_id, inventory_id):
+    ticket = db.session.get(ServiceTicket, ticket_id)
+    part = db.session.get(Inventory, inventory_id)
+
+    if not ticket:
+        return jsonify({"error": "Service ticket not found."}), 404
+    if not part:
+        return jsonify({"error": "Inventory item not found."}), 404
+    if part not in ticket.parts:
+        return jsonify({"error": "Part not associated with this ticket."}), 400
+
+    ticket.parts.remove(part)
+    db.session.commit()
+    return service_ticket_schema.jsonify(ticket), 200
+
+# route for remove customer from ticket
+@service_tickets_bp.route('/<int:ticket_id>/remove-customer', methods=['PUT'])
+def remove_customer(ticket_id):
+    ticket = db.session.get(ServiceTicket, ticket_id)
+
+    if not ticket:
+        return jsonify({"error": "Service ticket not found."}), 404
+
+    ticket.customer_id = None
+    db.session.commit()
+    return service_ticket_schema.jsonify(ticket), 200

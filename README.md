@@ -8,14 +8,21 @@ A Flask REST API for a car/mechanic shop using the Application Factory Pattern.
 Car Shop API/
 ├── run.py
 ├── config.py
+├── tests/
+│   ├── test_customers.py
+│   ├── test_mechanics.py
+│   ├── test_servicetickets.py
+│   └── test_inventory.py
 └── app/
     ├── __init__.py          # App factory, registers blueprints, creates tables
     ├── extensions.py        # db, ma, limiter, cache
     ├── models.py            # User, Mechanic, ServiceTicket, Inventory, join tables
+    ├── static/
+    │   └── swagger.yaml     # OpenAPI 2.0 documentation
     ├── utils/
     │   └── util.py          # JWT encode_token(), token_required decorator
     └── blueprints/
-        ├── customer/
+        ├── customers/
         │   ├── __init__.py  # customer_bp
         │   ├── routes.py    # POST /, POST /login, GET /, GET /my-tickets, PUT /<id>, DELETE /
         │   └── schemas.py   # CustomerSchema, LoginSchema
@@ -25,7 +32,7 @@ Car Shop API/
         │   └── schemas.py   # MechanicSchema
         ├── service_tickets/
         │   ├── __init__.py  # service_tickets_bp
-        │   ├── routes.py    # POST /, GET /, PUT assign/remove/edit mechanic, assign customer, add part
+        │   ├── routes.py    # POST /, GET /, PUT /<id>, assign/remove mechanic, assign/remove customer, add/remove part
         │   └── schemas.py   # ServiceTicketSchema
         └── inventory/
             ├── __init__.py  # inventory_bp
@@ -35,10 +42,18 @@ Car Shop API/
 
 ## Setup
 
+**Mac:**
+
 ```bash
-python -m venv .venv
-source .venv/Scripts/activate
-pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy flask-limiter flask-caching python-jose
+source "venv (Mac)/bin/activate"
+pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy flask-limiter flask-caching python-jose flask-swagger-ui
+```
+
+**Windows:**
+
+```bash
+"venv (PC)/Scripts/activate"
+pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy flask-limiter flask-caching python-jose flask-swagger-ui
 ```
 
 ## Running the App
@@ -47,9 +62,17 @@ pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy flas
 python run.py
 ```
 
-The server runs on `http://127.0.0.1:5001`.
+The server runs on `http://127.0.0.1:5000`.
 
 The SQLite database (`car_shop.db`) is created automatically on first run inside the `instance/` folder.
+
+## API Documentation
+
+Interactive Swagger UI docs are available at:
+
+```
+http://127.0.0.1:5000/docs
+```
 
 ## Authentication
 
@@ -65,44 +88,60 @@ Obtain a token by logging in at `POST /customers/login`. Tokens expire after 1 h
 
 ### Customers `/customers`
 
-| Method | Route | Auth Required | Description |
-|--------|-------|:---:|-------------|
-| POST | `/` | No | Create a new customer |
-| POST | `/login` | No | Login — returns JWT token |
-| GET | `/` | No | Get all customers (supports `?page=&per_page=`) |
-| GET | `/my-tickets` | Yes | Get the authenticated customer's service tickets |
-| PUT | `/<customer_id>` | Yes | Update a customer |
-| DELETE | `/` | Yes | Delete the authenticated customer |
+| Method | Route            | Auth Required | Description                                      |
+| ------ | ---------------- | :-----------: | ------------------------------------------------ |
+| POST   | `/`              |      No       | Create a new customer                            |
+| POST   | `/login`         |      No       | Login — returns JWT token                        |
+| GET    | `/`              |      No       | Get all customers (supports `?page=&per_page=`)  |
+| GET    | `/my-tickets`    |      Yes      | Get the authenticated customer's service tickets |
+| PUT    | `/<customer_id>` |      Yes      | Update a customer                                |
+| DELETE | `/`              |      Yes      | Delete the authenticated customer                |
 
 ### Mechanics `/mechanics`
 
-| Method | Route | Auth Required | Description |
-|--------|-------|:---:|-------------|
-| POST | `/` | No | Create a new mechanic |
-| GET | `/` | No | Get all mechanics (rate limited: 100/hr, cached 60s) |
-| GET | `/most-worked` | No | Get mechanics sorted by number of tickets |
-| PUT | `/<id>` | No | Update a mechanic |
-| DELETE | `/<id>` | No | Delete a mechanic |
+| Method | Route          | Auth Required | Description                                          |
+| ------ | -------------- | :-----------: | ---------------------------------------------------- |
+| POST   | `/`            |      No       | Create a new mechanic                                |
+| GET    | `/`            |      No       | Get all mechanics (rate limited: 100/hr, cached 60s) |
+| GET    | `/most-worked` |      No       | Get mechanics sorted by number of tickets            |
+| PUT    | `/<id>`        |      No       | Update a mechanic                                    |
+| DELETE | `/<id>`        |      No       | Delete a mechanic                                    |
 
 ### Service Tickets `/service-tickets`
 
-| Method | Route | Auth Required | Description |
-|--------|-------|:---:|-------------|
-| POST | `/` | No | Create a new service ticket |
-| GET | `/` | No | Get all service tickets |
-| PUT | `/<ticket_id>` | No | Update a service ticket |
-| PUT | `/<ticket_id>/assign-mechanic/<mechanic_id>` | No | Assign a mechanic to a ticket |
-| PUT | `/<ticket_id>/remove-mechanic/<mechanic_id>` | No | Remove a mechanic from a ticket |
-| PUT | `/<ticket_id>/edit` | No | Batch add/remove mechanics (`add_ids`, `remove_ids`) |
-| PUT | `/<ticket_id>/assign-customer/<customer_id>` | No | Assign a customer to a ticket |
-| PUT | `/<ticket_id>/add-part/<inventory_id>` | No | Add an inventory part to a ticket |
+| Method | Route                                        | Auth Required | Description                                          |
+| ------ | -------------------------------------------- | :-----------: | ---------------------------------------------------- |
+| POST   | `/`                                          |      No       | Create a new service ticket                          |
+| GET    | `/`                                          |      No       | Get all service tickets                              |
+| PUT    | `/<ticket_id>`                               |      No       | Update a service ticket                              |
+| PUT    | `/<ticket_id>/assign-mechanic/<mechanic_id>` |      No       | Assign a mechanic to a ticket                        |
+| PUT    | `/<ticket_id>/remove-mechanic/<mechanic_id>` |      No       | Remove a mechanic from a ticket                      |
+| PUT    | `/<ticket_id>/edit`                          |      No       | Batch add/remove mechanics (`add_ids`, `remove_ids`) |
+| PUT    | `/<ticket_id>/assign-customer/<customer_id>` |      No       | Assign a customer to a ticket                        |
+| PUT    | `/<ticket_id>/remove-customer`               |      No       | Remove the customer from a ticket                    |
+| PUT    | `/<ticket_id>/add-part/<inventory_id>`       |      No       | Add an inventory part to a ticket                    |
+| PUT    | `/<ticket_id>/remove-part/<inventory_id>`    |      No       | Remove an inventory part from a ticket               |
 
 ### Inventory `/inventory`
 
-| Method | Route | Auth Required | Description |
-|--------|-------|:---:|-------------|
-| POST | `/` | No | Create a new part |
-| GET | `/` | No | Get all parts |
-| GET | `/<part_id>` | No | Get a single part |
-| PUT | `/<part_id>` | No | Update a part |
-| DELETE | `/<part_id>` | No | Delete a part |
+| Method | Route        | Auth Required | Description       |
+| ------ | ------------ | :-----------: | ----------------- |
+| POST   | `/`          |      No       | Create a new part |
+| GET    | `/`          |      No       | Get all parts     |
+| GET    | `/<part_id>` |      No       | Get a single part |
+| PUT    | `/<part_id>` |      No       | Update a part     |
+| DELETE | `/<part_id>` |      No       | Delete a part     |
+
+## Running Tests
+
+With the virtual environment activated, run all tests from the project root:
+
+```bash
+python -m unittest discover tests
+```
+
+Or run a single test file:
+
+```bash
+python -m unittest tests/test_customers.py
+```
