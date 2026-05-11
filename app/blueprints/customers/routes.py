@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from marshmallow import ValidationError
 from sqlalchemy import select
-from app.blueprints.customer import customer_bp
+from app.blueprints.customers import customer_bp
 from app.models import User, ServiceTicket
 from app.extensions import db
 from .schemas import customer_schema, customers_schema, login_schema

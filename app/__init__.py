@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 from .extensions import db, ma, limiter, cache
 from .blueprints.mechanics import mechanics_bp
 from .blueprints.service_tickets import service_tickets_bp
-from .blueprints.customer import customer_bp
+from .blueprints.customers import customer_bp
 from .blueprints.inventory import inventory_bp
 from flask_swagger_ui import get_swaggerui_blueprint
 
