@@ -1,0 +1,10 @@
+flask
+flask-sqlalchemy
+flask-marshmallow
+marshmallow-sqlalchemy
+flask-limiter
+flask-caching
+python-jose
+flask-swagger-ui
+psycopg2-binary
+python-dotenv
