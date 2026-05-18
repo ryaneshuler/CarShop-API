@@ -3,9 +3,9 @@ info:
   title: "Car Shop API"
   description: "This is an API for a car shop application that allows users to manage service tickets, customers, and inventory."
   version: "1.0.0"
-host: "127.0.0.1:5000"
+host: "carshop-api-nzlc.onrender.com"
 schemes:
-  - "http"
+  - "https"
 consumes:
   - "application/json"
 produces:
