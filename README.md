@@ -1,13 +1,25 @@
 # Car Shop API
 
-A Flask REST API for a car/mechanic shop using the Application Factory Pattern.
+A Flask REST API for a car/mechanic shop using the Application Factory Pattern, deployed on Render with a CI/CD pipeline via GitHub Actions.
+
+## Live API
+
+Base URL: `https://carshop-api-nzlc.onrender.com`
+
+Interactive Swagger docs: `https://carshop-api-nzlc.onrender.com/docs`
 
 ## Project Structure
 
 ```
 Car Shop API/
-├── run.py
-├── config.py
+├── flask_app.py             # App entry point (ProductionConfig)
+├── config.py                # DevelopmentConfig, TestingConfig, ProductionConfig
+├── requirements.txt         # Python dependencies
+├── .env                     # Local environment variables (not committed)
+├── .gitignore
+├── .github/
+│   └── workflows/
+│       └── main.yaml        # CI/CD pipeline (build → test → deploy)
 ├── tests/
 │   ├── test_customers.py
 │   ├── test_mechanics.py
@@ -40,38 +52,65 @@ Car Shop API/
             └── schemas.py   # InventorySchema
 ```
 
-## Setup
+## Local Setup
 
-**Mac:**
+**1. Activate virtual environment**
 
+Mac:
 ```bash
 source "venv (Mac)/bin/activate"
-pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy flask-limiter flask-caching python-jose flask-swagger-ui
 ```
 
-**Windows:**
-
+Windows:
 ```bash
-"venv (PC)/Scripts/activate"
-pip install flask flask-sqlalchemy flask-marshmallow marshmallow-sqlalchemy flask-limiter flask-caching python-jose flask-swagger-ui
+& "venv (PC)/Scripts/Activate.ps1"
 ```
 
-## Running the App
+**2. Install dependencies**
 
 ```bash
-python run.py
+pip install -r requirements.txt
+```
+
+**3. Create a `.env` file in the project root**
+
+```
+SQLALCHEMY_DATABASE_URI=your_database_uri_here
+SECRET_KEY=your_secret_key_here
+```
+
+**4. Run locally**
+
+```bash
+python flask_app.py
 ```
 
 The server runs on `http://127.0.0.1:5000`.
 
-The SQLite database (`car_shop.db`) is created automatically on first run inside the `instance/` folder.
+## Production Deployment
+
+The app is deployed on Render using Gunicorn:
+
+```bash
+gunicorn flask_app:app
+```
+
+Environment variables (`SQLALCHEMY_DATABASE_URI` and `SECRET_KEY`) are configured in the Render dashboard.
+
+## CI/CD Pipeline
+
+Every push to the `Main` branch triggers the GitHub Actions workflow (`.github/workflows/main.yaml`):
+
+1. **build** — checks out the code
+2. **test** — installs dependencies and runs the full test suite
+3. **deploy** — deploys to Render (requires `SERVICE_ID` and `RENDER_API_KEY` GitHub secrets)
 
 ## API Documentation
 
-Interactive Swagger UI docs are available at:
+Interactive Swagger UI docs:
 
 ```
-http://127.0.0.1:5000/docs
+https://carshop-api-nzlc.onrender.com/docs
 ```
 
 ## Authentication
